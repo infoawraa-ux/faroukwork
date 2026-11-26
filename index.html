@@ -120,7 +120,7 @@
     <div id="mode-banner" class="max-w-lg mx-auto px-4 pt-3 hidden">
         <div id="mode-banner-inner" class="rounded-xl px-3 py-2 text-[11px] font-bold flex items-center justify-between gap-2 border">
             <span id="mode-banner-text" class="flex items-center gap-1.5"></span>
-            <button type="button" id="btn-banner-switch" class="underline shrink-0 font-extrabold">تبديل الكارت</button>
+            <button type="button" id="btn-banner-switch" class="admin-only-control hidden underline shrink-0 font-extrabold">تبديل الكارت</button>
         </div>
     </div>
 
@@ -292,7 +292,7 @@
                 <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
                 </svg>
-                <span>معاينة كارت الفاروق ميديكال (QR / NFC) وتبديل الكروت</span>
+                <span id="footer-card-preview-label">معاينة كارت الفاروق ميديكال (QR / NFC)</span>
             </button>
             <p class="text-[11px] font-bold text-slate-400">الفاروق ميديكال — نظام البطاقات الطبية الذكية للطوارئ في مصر</p>
         </footer>
@@ -594,40 +594,97 @@
                 </div>
             </div>
 
-            <!-- زر نسخ الرابط لبرمجة شريحة NFC -->
-            <button type="button" id="btn-copy-link"
-                class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white text-xs font-bold flex items-center justify-center gap-2 transition">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
-                </svg>
-                <span>نسخ رابط الكارت لبرمجة شريحة NFC</span>
-            </button>
+            <!-- قسم أدوات الأدمن (مخفي تماماً عن الزوار ولا يظهر إلا بكلمة سر الأدمن) -->
+            <div id="admin-tools-panel" class="hidden space-y-3 pt-2 border-t border-slate-200">
+                <div class="flex items-center justify-between bg-slate-900 text-white px-3 py-2 rounded-xl">
+                    <span class="text-[11px] font-extrabold flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+                        <span>وضع الأدمن مُفعّل (برمجة وإدارة الكروت)</span>
+                    </span>
+                    <button type="button" id="btn-lock-admin" class="text-[11px] font-bold bg-white/15 hover:bg-white/25 px-2.5 py-1 rounded-lg transition">
+                        قفل الأدمن
+                    </button>
+                </div>
 
-            <!-- مُبدّل أرقام الكروت السريع للتجربة -->
-            <div class="pt-3 border-t border-slate-200 space-y-2.5">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-black text-slate-700">تبديل / تجربة رقم كارت</span>
-                    <span class="font-en text-[10px] font-bold text-slate-400">?id=...</span>
+                <!-- زر نسخ الرابط لبرمجة شريحة NFC -->
+                <button type="button" id="btn-copy-link"
+                    class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white text-xs font-bold flex items-center justify-center gap-2 transition">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+                    </svg>
+                    <span>نسخ رابط الكارت لبرمجة شريحة NFC</span>
+                </button>
+
+                <!-- مُبدّل أرقام الكروت السريع -->
+                <div class="pt-2 border-t border-slate-200 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-slate-700">تبديل / إدارة رقم كارت</span>
+                        <span class="font-en text-[10px] font-bold text-slate-400">?id=...</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" data-switch-id="EG1001" class="btn-quick-switch px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold transition">
+                            <span class="font-en">EG1001</span> (مُفعّل)
+                        </button>
+                        <button type="button" data-switch-id="EG1002" class="btn-quick-switch px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition">
+                            <span class="font-en">EG1002</span> (كارت جديد)
+                        </button>
+                        <button type="button" data-switch-id="EG1003" class="btn-quick-switch px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition">
+                            <span class="font-en">EG1003</span> (كارت جديد)
+                        </button>
+                    </div>
+                    <form id="switch-card-form" class="flex gap-2">
+                        <input type="text" id="input-switch-id" placeholder="اكتب أي رقم كارت (مثال: EG1050)"
+                            class="flex-1 font-en uppercase rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-500">
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black transition">
+                            فتح
+                        </button>
+                    </form>
                 </div>
-                <div class="flex flex-wrap gap-1.5">
-                    <button type="button" data-switch-id="EG1001" class="btn-quick-switch px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold transition">
-                        <span class="font-en">EG1001</span> (مُفعّل)
-                    </button>
-                    <button type="button" data-switch-id="EG1002" class="btn-quick-switch px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition">
-                        <span class="font-en">EG1002</span> (كارت جديد)
-                    </button>
-                    <button type="button" data-switch-id="EG1003" class="btn-quick-switch px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition">
-                        <span class="font-en">EG1003</span> (كارت جديد)
-                    </button>
-                </div>
-                <form id="switch-card-form" class="flex gap-2">
-                    <input type="text" id="input-switch-id" placeholder="اكتب أي رقم كارت (مثال: EG1050)"
-                        class="flex-1 font-en uppercase rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-500">
-                    <button type="submit" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black transition">
-                        فتح
-                    </button>
-                </form>
             </div>
+
+            <!-- رابط صغير للدخول كأدمن -->
+            <div id="admin-unlock-bar" class="pt-2 border-t border-slate-100 flex justify-end">
+                <button type="button" id="btn-open-admin-modal" class="text-[11px] font-bold text-slate-400 hover:text-slate-700 transition flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                    </svg>
+                    <span>دخول الإدارة</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- نافذة كلمة سر الأدمن (لإظهار أدوات نسخ الروابط وتبديل الكروت)         -->
+    <!-- ===================================================================== -->
+    <div id="admin-modal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-black text-slate-900">دخول الإدارة (الأدمن)</h3>
+                </div>
+                <button type="button" id="btn-close-admin" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-600 mb-3">أدخل كلمة سر الأدمن لإظهار أدوات نسخ رابط NFC وتبديل أرقام الكروت.</p>
+
+            <form id="admin-form" class="space-y-3">
+                <input type="password" id="admin-pass-input" autocomplete="off" placeholder="كلمة سر الأدمن"
+                    class="w-full font-en text-center text-base font-bold rounded-xl border-2 border-slate-300 py-2.5 px-3 focus:outline-none focus:border-slate-900">
+
+                <p id="admin-pass-error" class="hidden text-xs font-bold text-red-600 text-center">كلمة سر الأدمن غير صحيحة.</p>
+
+                <button type="submit" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-sm transition">
+                    تأكيد وفتح أدوات الإدارة
+                </button>
+            </form>
         </div>
     </div>
 
@@ -650,6 +707,10 @@
             messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
             appId: "YOUR_APP_ID"
         };
+
+        // كلمة سر الأدمن لإظهار أدوات نسخ الرابط وتبديل أرقام الكروت (يمكنك تغييرها في أي وقت)
+        const ADMIN_PASSWORD = 'Farouk@2026';
+        const ADMIN_SESSION_KEY = 'alfarouk_admin_unlocked_v1';
 
         // متغيرات الحالة العامة للتطبيق
         const LOCAL_STORAGE_KEY = 'alfarouk_medical_cards_v1';
@@ -1375,7 +1436,69 @@
             loadCard(customId);
         });
 
+        // =====================================================================
+        // التحكم في وضع الأدمن (إخفاء/إظهار أدوات النسخ وتبديل الكروت)
+        // =====================================================================
+        function isAdminUnlocked() {
+            try {
+                return sessionStorage.getItem(ADMIN_SESSION_KEY) === '1';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function updateAdminUI() {
+            const unlocked = isAdminUnlocked();
+            const toolsPanel = document.getElementById('admin-tools-panel');
+            const unlockBar = document.getElementById('admin-unlock-bar');
+            const bannerSwitch = document.getElementById('btn-banner-switch');
+            const footerLabel = document.getElementById('footer-card-preview-label');
+
+            if (toolsPanel) toolsPanel.classList.toggle('hidden', !unlocked);
+            if (unlockBar) unlockBar.classList.toggle('hidden', unlocked);
+            if (bannerSwitch) bannerSwitch.classList.toggle('hidden', !unlocked);
+            if (footerLabel) {
+                footerLabel.textContent = unlocked
+                    ? 'معاينة كارت الفاروق ميديكال (QR / NFC) وإدارة الكروت'
+                    : 'معاينة كارت الفاروق ميديكال (QR / NFC)';
+            }
+        }
+
+        const adminModal = document.getElementById('admin-modal');
+        const adminPassInput = document.getElementById('admin-pass-input');
+        const adminPassError = document.getElementById('admin-pass-error');
+
+        document.getElementById('btn-open-admin-modal').addEventListener('click', () => {
+            adminPassInput.value = '';
+            adminPassError.classList.add('hidden');
+            adminModal.classList.remove('hidden');
+            setTimeout(() => adminPassInput.focus(), 100);
+        });
+
+        document.getElementById('btn-close-admin').addEventListener('click', () => adminModal.classList.add('hidden'));
+        adminModal.addEventListener('click', (e) => { if (e.target === adminModal) adminModal.classList.add('hidden'); });
+
+        document.getElementById('admin-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (adminPassInput.value.trim() === ADMIN_PASSWORD) {
+                try { sessionStorage.setItem(ADMIN_SESSION_KEY, '1'); } catch (err) {}
+                adminModal.classList.add('hidden');
+                updateAdminUI();
+                showToast('تم تفعيل وضع الأدمن بنجاح');
+            } else {
+                adminPassError.classList.remove('hidden');
+                adminPassInput.select();
+            }
+        });
+
+        document.getElementById('btn-lock-admin').addEventListener('click', () => {
+            try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch (err) {}
+            updateAdminUI();
+            showToast('تم قفل وضع الأدمن وإخفاء أدوات البرمجة', 'info');
+        });
+
         // تشغيل التطبيق عند تحميل الصفحة
+        updateAdminUI();
         initFirebase();
         loadCard(currentCardId);
     </script>
