@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>الفاروق ميديكال | نظام الطوارئ والتتبع الذكي (خطة loly)</title>
+
+  <!-- Google Fonts: Cairo & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            arabic: ['Cairo', 'sans-serif'],
+            latin: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ltr-num {
+      font-family: 'Inter', sans-serif;
+      direction: ltr;
+      display: inline-block;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    }
+    .emergency-pulse {
+      animation: pulse-ring 2s infinite;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #ffffff !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Status Bar -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40 no-print">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center font-black text-lg shadow-inner">
+          +
+        </div>
+        <div>
+          <h1 class="font-extrabold text-sm sm:text-base leading-tight">الفاروق ميديكال</h1>
+          <p class="text-[11px] text-slate-300">كارت الطوارئ والتتبع الذكي | NFC &amp; QR</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span id="syncBadge" class="text-[11px] px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold">
+          جاري الاتصال بـ Firebase...
+        </span>
+        <button id="toggleAdminBtn" type="button" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 font-bold transition">
+          الإدارة
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-6 space-y-6">
+
+    <!-- Lost / Missing Mode Banner -->
+    <section id="lostBanner" class="hidden bg-red-600 text-white rounded-2xl p-5 shadow-xl border-2 border-red-300 emergency-pulse">
+      <div class="flex items-start gap-3">
+        <div class="text-3xl">🚨</div>
+        <div class="flex-1 space-y-1">
+          <h2 class="text-lg sm:text-xl font-black">تنبيه حالة فقدان / طوارئ قصوى!</h2>
+          <p id="lostMessageText" class="text-sm sm:text-base text-red-50 leading-relaxed">
+            حامل هذا الكارت مُبلَّغ عن فقدانه أو يحتاج مساعدة عاجلة. يرجى التواصل فوراً مع أرقام الطوارئ أدناه أو مشاركة موقعك الحالي.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Public Emergency Card View -->
+    <section id="publicView" class="space-y-5">
+
+      <!-- Card Header & Identity -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-l from-red-700 to-slate-900 p-5 text-white flex flex-wrap items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="inline-flex items-center gap-2 bg-white/15 px-2.5 py-0.5 rounded-full text-xs font-bold">
+              <span>رقم الكارت:</span>
+              <span id="displayCardId" class="ltr-num font-bold">EG1001</span>
+            </div>
+            <h2 id="displayFullName" class="text-2xl sm:text-3xl font-black tracking-tight">جاري تحميل البيانات...</h2>
+            <p id="displaySubtitle" class="text-xs sm:text-sm text-slate-200">بطاقة تعريف طبية ذكية للطوارئ</p>
+          </div>
+
+          <div class="bg-white text-red-700 rounded-2xl px-4 py-3 text-center shadow-md min-w-[92px]">
+            <div class="text-[11px] font-bold text-slate-500">فصيلة الدم</div>
+            <div id="displayBloodType" class="text-2xl font-black ltr-num mt-0.5">--</div>
+          </div>
+        </div>
+
+        <!-- Quick Vital Info Grid -->
+        <div class="p-5 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/70 border-b border-slate-100">
+          <div class="bg-white p-3 rounded-xl border border-slate-200/80">
+            <div class="text-[11px] text-slate-500 font-semibold">العمر / سنة الميلاد</div>
+            <div id="displayAge" class="font-bold text-sm text-slate-800 mt-0.5">--</div>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200/80">
+            <div class="text-[11px] text-slate-500 font-semibold">المحافظة / المدينة</div>
+            <div id="displayCity" class="font-bold text-sm text-slate-800 mt-0.5">--</div>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200/80">
+            <div class="text-[11px] text-slate-500 font-semibold">حالة التتبع</div>
+            <div id="displayStatus" class="font-bold text-sm text-emerald-700 mt-0.5">طبيعي / نشط</div>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200/80">
+            <div class="text-[11px] text-slate-500 font-semibold">آخر تحديث</div>
+            <div id="displayUpdated" class="font-bold text-xs text-slate-600 mt-1 ltr-num">--</div>
+          </div>
+        </div>
+
+        <!-- Emergency Contacts & GPS Share -->
+        <div class="p-5 space-y-3">
+          <h3 class="text-sm font-extrabold text-slate-700 flex items-center gap-2">
+            <span>📞</span>
+            <span>أرقام الطوارئ والتواصل السريع</span>
+          </h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <a id="callPrimaryBtn" href="tel:" class="flex items-center justify-between bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-xl font-bold shadow-sm transition">
+              <div>
+                <div class="text-xs text-emerald-100">جهة الاتصال الأولى</div>
+                <div id="displayContact1Name" class="text-sm font-extrabold">ولي الأمر / قريب</div>
+              </div>
+              <span id="displayContact1Phone" class="ltr-num text-sm bg-black/20 px-2.5 py-1 rounded-lg">--</span>
+            </a>
+
+            <a id="callSecondaryBtn" href="tel:" class="flex items-center justify-between bg-slate-800 hover:bg-slate-900 text-white p-3.5 rounded-xl font-bold shadow-sm transition">
+              <div>
+                <div class="text-xs text-slate-300">جهة الاتصال الثانية</div>
+                <div id="displayContact2Name" class="text-sm font-extrabold">طوارئ إضافي</div>
+              </div>
+              <span id="displayContact2Phone" class="ltr-num text-sm bg-white/10 px-2.5 py-1 rounded-lg">--</span>
+            </a>
+          </div>
+
+          <!-- Send Live GPS Location Button -->
+          <div class="pt-2">
+            <button id="shareLocationBtn" type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-2 text-sm sm:text-base">
+              <span>📍</span>
+              <span>إرسال موقعي الحالي (GPS) إلى الأهل فوراً</span>
+            </button>
+            <p id="gpsStatusMsg" class="text-xs text-center text-slate-500 mt-2 hidden"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Medical Details -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-2">
+          <h3 class="text-sm font-extrabold text-red-700 flex items-center gap-2">
+            <span>🩺</span>
+            <span>الأمراض المزمنة والتاريخ الطبي</span>
+          </h3>
+          <p id="displayConditions" class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">لا يوجد</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-2">
+          <h3 class="text-sm font-extrabold text-amber-700 flex items-center gap-2">
+            <span>⚠️</span>
+            <span>الحساسية (أدوية / أطعمة)</span>
+          </h3>
+          <p id="displayAllergies" class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">لا يوجد</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-2">
+          <h3 class="text-sm font-extrabold text-blue-700 flex items-center gap-2">
+            <span>💊</span>
+            <span>الأدوية المنتظمة والجرعات</span>
+          </h3>
+          <p id="displayMedications" class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">لا يوجد</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-2">
+          <h3 class="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+            <span>📝</span>
+            <span>ملاحظات المسعفين والعنوان</span>
+          </h3>
+          <p id="displayNotes" class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">لا يوجد</p>
+        </div>
+      </div>
+
+      <!-- QR Code & Direct Card Link -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="space-y-1 text-center sm:text-right">
+          <h3 class="text-base font-extrabold text-slate-800">رمز الاستجابة السريعة للكارت (QR Code)</h3>
+          <p class="text-xs text-slate-500">يمكن مسح الرمز بالكاميرا أو برمجته على شريحة NFC لفتح هذا الملف مباشرة.</p>
+          <div class="pt-2 flex flex-wrap justify-center sm:justify-start gap-2 no-print">
+            <button id="copyLinkBtn" type="button" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold px-3 py-2 rounded-lg border border-slate-300 transition">
+              نسخ رابط الكارت
+            </button>
+            <button onclick="window.print()" type="button" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold px-3 py-2 rounded-lg border border-slate-300 transition">
+              طباعة الكارت
+            </button>
+          </div>
+        </div>
+        <div id="qrcode" class="p-2.5 bg-white border border-slate-200 rounded-xl shadow-inner"></div>
+      </div>
+
+    </section>
+
+    <!-- Admin Panel Section -->
+    <section id="adminSection" class="hidden bg-white rounded-2xl shadow-md border border-slate-200 p-5 sm:p-6 space-y-5 no-print">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div>
+          <h2 class="text-lg font-black text-slate-900">لوحة إدارة الكروت الطبية والتتبع</h2>
+          <p class="text-xs text-slate-500">تحديث البيانات يحفظ مباشرة في Firebase Firestore ويظهر فوراً على كل الأجهزة.</p>
+        </div>
+        <button id="closeAdminBtn" type="button" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-3 py-1.5 rounded-lg">
+          إغلاق
+        </button>
+      </div>
+
+      <!-- Password Gate -->
+      <div id="adminLoginBox" class="space-y-3 max-w-sm mx-auto py-4">
+        <label class="block text-sm font-bold text-slate-700">أدخل كلمة مرور الإدارة:</label>
+        <input id="adminPassInput" type="password" placeholder="كلمة المرور (الافتراضية: 123456)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm" />
+        <button id="adminLoginBtn" type="button" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-sm transition">
+          دخول لوحة التحكم
+        </button>
+        <p id="adminLoginError" class="text-xs text-red-600 font-bold hidden">كلمة المرور غير صحيحة.</p>
+      </div>
+
+      <!-- Admin Edit Form -->
+      <form id="adminForm" class="hidden space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-slate-700 mb-1">معرّف الكارت (Card ID)</label>
+            <input id="editCardId" type="text" value="EG1001" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm ltr-num font-bold" required />
+          </div>
+          <div class="flex items-end">
+            <button id="loadCardBtn" type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition">
+              تحميل بيانات الكارت
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">الاسم الكامل</label>
+            <input id="editFullName" type="text" placeholder="الاسم رباعي" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">فصيلة الدم</label>
+            <select id="editBloodType" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm ltr-num font-bold">
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">العمر / سنة الميلاد</label>
+            <input id="editAge" type="text" placeholder="مثال: 47 سنة" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">المحافظة / المدينة</label>
+            <input id="editCity" type="text" placeholder="مثال: القاهرة" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">اسم جهة الاتصال الأولى</label>
+            <input id="editContact1Name" type="text" placeholder="مثال: محمد فاروق" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">رقم هاتف الطوارئ الأول</label>
+            <input id="editContact1Phone" type="tel" placeholder="01000000000" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm ltr-num" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">اسم جهة الاتصال الثانية</label>
+            <input id="editContact2Name" type="text" placeholder="مثال: دينا" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">رقم هاتف الطوارئ الثاني</label>
+            <input id="editContact2Phone" type="tel" placeholder="01100000000" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm ltr-num" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">الأمراض المزمنة</label>
+            <textarea id="editConditions" rows="2" placeholder="السكري، الضغط، القلب..." class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">الحساسية</label>
+            <textarea id="editAllergies" rows="2" placeholder="البنسلين، السلفا، أطعمة..." class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">الأدوية المنتظمة</label>
+            <textarea id="editMedications" rows="2" placeholder="أسماء الأدوية والجرعات" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">ملاحظات المسعفين والعنوان</label>
+            <textarea id="editNotes" rows="2" placeholder="العنوان التفصيلي وأي تعليمات إسعاف" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></textarea>
+          </div>
+        </div>
+
+        <!-- Lost / Missing Mode Toggle -->
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input id="editIsLost" type="checkbox" class="w-4 h-4 accent-red-600" />
+            <span class="text-sm font-extrabold text-red-800">تفعيل وضع الفقدان / البلاغ العاجل (Lost Mode)</span>
+          </label>
+          <input id="editLostMessage" type="text" placeholder="رسالة تنبيه تظهر لمن يعثر على حامل الكارت..." class="w-full px-3 py-2 rounded-lg border border-red-200 text-sm bg-white" />
+        </div>
+
+        <!-- Last GPS Scan Log -->
+        <div id="lastGpsBox" class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 space-y-1 hidden">
+          <div class="font-extrabold">📍 آخر موقع GPS تم رصده من الكارت:</div>
+          <div id="lastGpsDetails">--</div>
+          <a id="lastGpsMapLink" href="#" target="_blank" class="inline-block mt-1 font-bold underline text-blue-700">فتح الموقع على خرائط جوجل</a>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 pt-2">
+          <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 px-5 rounded-xl shadow-sm transition text-sm">
+            حفظ ومزامنة البيانات في Firebase
+          </button>
+          <span id="saveFeedback" class="text-xs font-bold text-emerald-700 hidden">✅ تم الحفظ بنجاح!</span>
+        </div>
+      </form>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 no-print">
+    الفاروق ميديكال • نظام الهوية الطبية الذكية والتتبع السحابي (خطة loly)
+  </footer>
+
+  <!-- Firebase SDK v13.4.0 & App Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-analytics.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      onSnapshot,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDJUVhdm3a6pvFcX6JxrZAyHhoriVQQ4p8",
+      authDomain: "farouk-medical.firebaseapp.com",
+      projectId: "farouk-medical",
+      storageBucket: "farouk-medical.firebasestorage.app",
+      messagingSenderId: "721283049468",
+      appId: "1:721283049468:web:a4c283ab2e909ebb2c3479",
+      measurementId: "G-QDP1VMLB2N"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    try { getAnalytics(app); } catch (e) {}
+    const db = getFirestore(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentCardId = (urlParams.get("id") || "EG1001").trim().toUpperCase();
+
+    const syncBadge = document.getElementById("syncBadge");
+    const ADMIN_PASS = "123456";
+
+    const defaultCardData = {
+      cardId: currentCardId,
+      fullName: "حامل الكارت الطبي (" + currentCardId + ")",
+      bloodType: "O+",
+      age: "غير محدد",
+      city: "القاهرة",
+      contact1Name: "جهة الطوارئ الأولى",
+      contact1Phone: "01000000000",
+      contact2Name: "جهة الطوارئ الثانية",
+      contact2Phone: "123",
+      conditions: "لا توجد أمراض مزمنة مسجلة",
+      allergies: "لا توجد حساسية مسجلة",
+      medications: "لا توجد أدوية منتظمة",
+      notes: "يرجى الاتصال بأرقام الطوارئ عند العثور على حامل الكارت.",
+      isLost: false,
+      lostMessage: "تنبيه: حامل هذا الكارت مُبلَّغ عن فقدانه. يرجى التواصل فوراً مع الأهل أو مشاركة موقعك.",
+      updatedAtText: new Date().toLocaleDateString("ar-EG")
+    };
+
+    function renderCard(data) {
+      const d = { ...defaultCardData, ...data };
+      document.getElementById("displayCardId").textContent = d.cardId || currentCardId;
+      document.getElementById("displayFullName").textContent = d.fullName || "";
+      document.getElementById("displayBloodType").textContent = d.bloodType || "--";
+      document.getElementById("displayAge").textContent = d.age || "--";
+      document.getElementById("displayCity").textContent = d.city || "--";
+      document.getElementById("displayUpdated").textContent = d.updatedAtText || "--";
+
+      document.getElementById("displayContact1Name").textContent = d.contact1Name || "جهة الاتصال الأولى";
+      document.getElementById("displayContact1Phone").textContent = d.contact1Phone || "--";
+      document.getElementById("callPrimaryBtn").href = d.contact1Phone ? `tel:${d.contact1Phone}` : "#";
+
+      document.getElementById("displayContact2Name").textContent = d.contact2Name || "جهة الاتصال الثانية";
+      document.getElementById("displayContact2Phone").textContent = d.contact2Phone || "--";
+      document.getElementById("callSecondaryBtn").href = d.contact2Phone ? `tel:${d.contact2Phone}` : "#";
+
+      document.getElementById("displayConditions").textContent = d.conditions || "لا يوجد";
+      document.getElementById("displayAllergies").textContent = d.allergies || "لا يوجد";
+      document.getElementById("displayMedications").textContent = d.medications || "لا يوجد";
+      document.getElementById("displayNotes").textContent = d.notes || "لا يوجد";
+
+      const lostBanner = document.getElementById("lostBanner");
+      const displayStatus = document.getElementById("displayStatus");
+      if (d.isLost) {
+        lostBanner.classList.remove("hidden");
+        document.getElementById("lostMessageText").textContent = d.lostMessage || defaultCardData.lostMessage;
+        displayStatus.textContent = "🚨 حالة فقدان / طوارئ";
+        displayStatus.className = "font-extrabold text-sm text-red-600 mt-0.5";
+      } else {
+        lostBanner.classList.add("hidden");
+        displayStatus.textContent = "طبيعي / نشط";
+        displayStatus.className = "font-bold text-sm text-emerald-700 mt-0.5";
+      }
+
+      // Fill Admin Form
+      document.getElementById("editCardId").value = d.cardId || currentCardId;
+      document.getElementById("editFullName").value = d.fullName || "";
+      document.getElementById("editBloodType").value = d.bloodType || "O+";
+      document.getElementById("editAge").value = d.age || "";
+      document.getElementById("editCity").value = d.city || "";
+      document.getElementById("editContact1Name").value = d.contact1Name || "";
+      document.getElementById("editContact1Phone").value = d.contact1Phone || "";
+      document.getElementById("editContact2Name").value = d.contact2Name || "";
+      document.getElementById("editContact2Phone").value = d.contact2Phone || "";
+      document.getElementById("editConditions").value = d.conditions || "";
+      document.getElementById("editAllergies").value = d.allergies || "";
+      document.getElementById("editMedications").value = d.medications || "";
+      document.getElementById("editNotes").value = d.notes || "";
+      document.getElementById("editIsLost").checked = Boolean(d.isLost);
+      document.getElementById("editLostMessage").value = d.lostMessage || "";
+
+      if (d.lastGps && d.lastGps.lat && d.lastGps.lng) {
+        const gpsBox = document.getElementById("lastGpsBox");
+        gpsBox.classList.remove("hidden");
+        document.getElementById("lastGpsDetails").textContent =
+          `الإحداثيات: ${d.lastGps.lat.toFixed(6)}, ${d.lastGps.lng.toFixed(6)} (${d.lastGps.time || ""})`;
+        document.getElementById("lastGpsMapLink").href =
+          `https://www.google.com/maps?q=${d.lastGps.lat},${d.lastGps.lng}`;
+      }
+    }
+
+    function generateQR(cardId) {
+      const qrContainer = document.getElementById("qrcode");
+      qrContainer.innerHTML = "";
+      const targetUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(cardId)}`;
+      new QRCode(qrContainer, {
+        text: targetUrl,
+        width: 116,
+        height: 116,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    let unsubscribeCard = null;
+
+    function subscribeToCard(cardId) {
+      currentCardId = cardId.trim().toUpperCase();
+      generateQR(currentCardId);
+      if (unsubscribeCard) unsubscribeCard();
+
+      const cardRef = doc(db, "medical_cards", currentCardId);
+      unsubscribeCard = onSnapshot(
+        cardRef,
+        async (snap) => {
+          syncBadge.textContent = "متصل أونلاين بـ Firebase Firestore";
+          syncBadge.className = "text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold";
+
+          if (snap.exists()) {
+            renderCard(snap.data());
+          } else {
+            const initial = { ...defaultCardData, cardId: currentCardId };
+            renderCard(initial);
+            try {
+              await setDoc(cardRef, { ...initial, createdAt: serverTimestamp() });
+            } catch (err) {
+              console.warn("Initial create skipped:", err);
+            }
+          }
+        },
+        (error) => {
+          console.error("Firestore error:", error);
+          syncBadge.textContent = "تعذر الاتصال السحابي (تحقق من Rules)";
+          syncBadge.className = "text-[11px] px-2.5 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 font-semibold";
+          renderCard(defaultCardData);
+        }
+      );
+    }
+
+    // Start Real-time Sync
+    subscribeToCard(currentCardId);
+
+    // Admin UI Controls
+    const adminSection = document.getElementById("adminSection");
+    document.getElementById("toggleAdminBtn").addEventListener("click", () => {
+      adminSection.classList.toggle("hidden");
+      adminSection.scrollIntoView({ behavior: "smooth" });
+    });
+    document.getElementById("closeAdminBtn").addEventListener("click", () => {
+      adminSection.classList.add("hidden");
+    });
+
+    document.getElementById("adminLoginBtn").addEventListener("click", () => {
+      const val = document.getElementById("adminPassInput").value.trim();
+      if (val === ADMIN_PASS) {
+        document.getElementById("adminLoginBox").classList.add("hidden");
+        document.getElementById("adminForm").classList.remove("hidden");
+        document.getElementById("adminLoginError").classList.add("hidden");
+      } else {
+        document.getElementById("adminLoginError").classList.remove("hidden");
+      }
+    });
+
+    document.getElementById("loadCardBtn").addEventListener("click", () => {
+      const requestedId = document.getElementById("editCardId").value.trim().toUpperCase();
+      if (!requestedId) return;
+      const newUrl = `${window.location.pathname}?id=${encodeURIComponent(requestedId)}`;
+      window.history.replaceState({}, "", newUrl);
+      subscribeToCard(requestedId);
+    });
+
+    document.getElementById("adminForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const targetId = document.getElementById("editCardId").value.trim().toUpperCase() || currentCardId;
+      const payload = {
+        cardId: targetId,
+        fullName: document.getElementById("editFullName").value.trim(),
+        bloodType: document.getElementById("editBloodType").value,
+        age: document.getElementById("editAge").value.trim(),
+        city: document.getElementById("editCity").value.trim(),
+        contact1Name: document.getElementById("editContact1Name").value.trim(),
+        contact1Phone: document.getElementById("editContact1Phone").value.trim(),
+        contact2Name: document.getElementById("editContact2Name").value.trim(),
+        contact2Phone: document.getElementById("editContact2Phone").value.trim(),
+        conditions: document.getElementById("editConditions").value.trim(),
+        allergies: document.getElementById("editAllergies").value.trim(),
+        medications: document.getElementById("editMedications").value.trim(),
+        notes: document.getElementById("editNotes").value.trim(),
+        isLost: document.getElementById("editIsLost").checked,
+        lostMessage: document.getElementById("editLostMessage").value.trim(),
+        updatedAtText: new Date().toLocaleString("ar-EG"),
+        updatedAt: serverTimestamp()
+      };
+
+      try {
+        await setDoc(doc(db, "medical_cards", targetId), payload, { merge: true });
+        if (targetId !== currentCardId) {
+          subscribeToCard(targetId);
+        }
+        const fb = document.getElementById("saveFeedback");
+        fb.classList.remove("hidden");
+        setTimeout(() => fb.classList.add("hidden"), 3500);
+      } catch (err) {
+        alert("حدث خطأ أثناء الحفظ في Firebase: " + err.message);
+      }
+    });
+
+    // GPS Location Sharing
+    document.getElementById("shareLocationBtn").addEventListener("click", () => {
+      const statusEl = document.getElementById("gpsStatusMsg");
+      statusEl.classList.remove("hidden");
+      if (!navigator.geolocation) {
+        statusEl.textContent = "المتصفح لا يدعم تحديد الموقع الجغرافي.";
+        return;
+      }
+      statusEl.textContent = "جاري تحديد إحداثيات موقعك بدقة...";
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const timeStr = new Date().toLocaleString("ar-EG");
+          const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+
+          try {
+            await setDoc(
+              doc(db, "medical_cards", currentCardId),
+              { lastGps: { lat, lng, time: timeStr } },
+              { merge: true }
+            );
+          } catch (e) {
+            console.warn("Could not save GPS to Firestore:", e);
+          }
+
+          statusEl.innerHTML = `✅ تم تسجيل الموقع بنجاح! <a href="${mapsUrl}" target="_blank" class="underline font-bold text-blue-700">فتح على الخريطة</a>`;
+
+          const phone = document.getElementById("displayContact1Phone").textContent.replace(/[^0-9]/g, "");
+          if (phone && phone.length >= 10) {
+            const waPhone = phone.startsWith("0") ? "2" + phone : phone;
+            const msg = encodeURIComponent(`مرحباً، لقد مسحت كارت الطوارئ الطبي (${currentCardId}) وهذا موقعي الحالي للمساعدة:
+${mapsUrl}`);
+            window.open(`https://wa.me/${waPhone}?text=${msg}`, "_blank");
+          }
+        },
+        (err) => {
+          statusEl.textContent = "تعذر الحصول على الموقع. يرجى تفعيل GPS في الهاتف والمحاولة مرة أخرى.";
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+
+    // Copy Link Button
+    document.getElementById("copyLinkBtn").addEventListener("click", async () => {
+      const shareUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(currentCardId)}`;
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert("تم نسخ رابط الكارت بنجاح:
+" + shareUrl);
+      } catch (e) {
+        prompt("انسخ رابط الكارت التالي:", shareUrl);
+      }
+    });
+  </script>
+</body>
+</html>
